@@ -8,7 +8,7 @@ from scipy import signal
 #import data
 pd.set_option('display.width', 400)
 pd.set_option('display.max_columns', 15)
-df=pd.read_csv('gold.csv')
+df=pd.read_csv('LBMA-GOLD.csv')
 df.head(5)
 
 #%%
@@ -36,5 +36,28 @@ df.head(5)
 df.index = df['Date']
 df.drop('Date',axis = 1, inplace = True)
 df.head(5)
+
 #%%
+#pick usd(am) as target value and create a new dataframe
+df.columns.values[0] = 'USD'
+df.head(5)
+
+#%%
+gold = df.iloc[: , [0]].copy()
+gold.head(5)
+#%%
+#see how many missing values
+gold.isnull().sum()
+#1 missing value
+#%%
+gold.info()
+#%%
+gold.dropna()
+#%%
+gold.head(5)
+#%%
+df_nan = nan_checker(gold)
+df_nan.reset_index(drop=True)
+#%%
+gold.isnull().sum()
 
