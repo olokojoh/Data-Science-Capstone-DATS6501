@@ -52,12 +52,109 @@ gold.isnull().sum()
 #%%
 gold.info()
 #%%
-gold.dropna()
-#%%
-gold.head(5)
+gold.dropna(inplace=True)
 #%%
 df_nan = nan_checker(gold)
 df_nan.reset_index(drop=True)
+
+
 #%%
-gold.isnull().sum()
+gold.head(5)
+#%%
+def get_auto_corr(timeSeries,k):
+    l = len(timeSeries)
+    timeSeries1 = timeSeries[0:l-k]
+    timeSeries2 = timeSeries[k:]
+    timeSeries_mean = np.mean(timeSeries)
+    timeSeries_var = np.array([i**2 for i in timeSeries-timeSeries_mean]).sum()
+    auto_corr = 0
+    for i in range(l-k):
+        temp = (timeSeries1[i]-timeSeries_mean)*(timeSeries2[i]-timeSeries_mean)/timeSeries_var
+        auto_corr = auto_corr + temp
+    return auto_corr
+
+#%%
+#plot the target value
+plt.plot(gold['USD'])
+plt.xlabel('date')
+plt.ylabel('gold price')
+plt.title('gold price per ounce in USD')
+plt.show()
+
+#%%
+#plot the autocorrelation of the gold price
+dep=np.array(gold['USD'])
+acf=[]
+for i in range(20):
+    acf.append(get_auto_corr(dep,i))
+L1=np.arange(0,20,1)
+L2=-L1[::-1]
+x = np.concatenate((L2[0:-1], L1))
+acf_reverse = acf[::-1]
+ACF = np.concatenate ((acf_reverse[0:-1], acf))
+plt.stem(x,ACF, use_line_collection=True, markerfmt = 'o')
+plt.xlabel('lags')
+plt.ylabel('ACF value')
+plt.title('ACF for USD price')
+plt.show()
+#it shows that gold price has high autocorrelation that we can apply
+#time series model on it
+
+#%%
+#from the gold price plot, we can see that the mean and variance of the
+#gold price is not stationary. To make time series model. firstly, we need
+#to make the gold price stationary. We can apply ADF test to see if the
+#the dataset if stationary.
+from statsmodels.tsa.stattools import adfuller
+stat =gold['USD'].values
+result = adfuller(stat)
+print('ADF Statistic: %f' % result[0])
+print('p-value: %f' % result[1])
+print('Critical Values:')
+for key, value in result[4].items():
+	print('\t%s: %.3f' % (key, value))
+#the p-value is 0.995 which is higher than 0.05
+
+
+
+#%%
+#try first difference transformation method
+#y(i)=y(t)-y(t-1)
+gold['price']=(gold['USD']-gold['USD'].shift(1)).dropna()
+gold=gold.drop(gold.index[0])
+gold.head(5)
+#%%
+gold = gold[gold['price'] >0]
+gold.head()
+#%%
+gold.info()
+#%%
+stat =gold['price'].values
+result = adfuller(stat)
+print('ADF Statistic: %f' % result[0])
+print('p-value: %f' % result[1])
+print('Critical Values:')
+for key, value in result[4].items():
+	print('\t%s: %.3f' % (key, value))
+#Now the p-value is about 0, which means the dataset is stationary
+
+#%%
+plt.plot(gold['price'])
+plt.xlabel('date')
+plt.ylabel('gold price')
+plt.title('first difference of gold price')
+plt.show()
+
+#%%
+from statsmodels.tsa.seasonal import seasonal_decompose
+result = seasonal_decompose(gold['price'], model='additive', freq=1)
+result.plot()
+plt.title('Addtive seasonal')
+plt.show()
+
+#%%
+from statsmodels.tsa.api import ExponentialSmoothing
+fit1 =ExponentialSmoothing(np.asarray(gold['price']), seasonal_periods=4, trend='add', seasonal='add').fit(use_boxcox=True)
+gold['Holt_Winter'] = fit1.forecast(len(gold))
+gold.head()
 
