@@ -1,79 +1,16 @@
+#%%
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import statsmodels.api as sm
 from scipy import signal
-
-#%%
-#import data
-pd.set_option('display.width', 400)
-pd.set_option('display.max_columns', 15)
-df=pd.read_csv('LBMA-GOLD.csv')
-df.head(5)
-
-#%%
-##EDA and preprocessing
-
-#%%
-#check missing value
-def nan_checker(df):
-    df_nan = pd.DataFrame([[var, df[var].isna().sum() / df.shape[0], df[var].dtype]
-                           for var in df.columns if df[var].isna().sum() > 0],
-                          columns=['var', 'proportion', 'dtype'])
-    df_nan = df_nan.sort_values(by='proportion', ascending=False)
-    return df_nan
-df_nan = nan_checker(df)
-df_nan.reset_index(drop=True)
-
-#%%
-#sort in date in ascending order
-df['Date'] = pd.to_datetime(df.Date,format='%Y-%m-%d')
-df.sort_values(by='Date', inplace=True, ascending=True)
-df.head(5)
-
-#%%
-#change the index to be the date
-df.index = df['Date']
-df.drop('Date',axis = 1, inplace = True)
-df.head(5)
-
-#%%
-#pick usd(am) as target value and create a new dataframe
-df.columns.values[0] = 'USD'
-df.head(5)
-
-#%%
-gold = df.iloc[: , [0]].copy()
-gold.head(5)
-#%%
-#see how many missing values
-gold.isnull().sum()
-#1 missing value
-#%%
-gold.info()
-#%%
-gold.dropna(inplace=True)
-gold.info()
-#%%
-df_nan = nan_checker(gold)
-df_nan.reset_index(drop=True)
-
-#%%
-def get_auto_corr(timeSeries,k):
-    l = len(timeSeries)
-    timeSeries1 = timeSeries[0:l-k]
-    timeSeries2 = timeSeries[k:]
-    timeSeries_mean = np.mean(timeSeries)
-    timeSeries_var = np.array([i**2 for i in timeSeries-timeSeries_mean]).sum()
-    auto_corr = 0
-    for i in range(l-k):
-        temp = (timeSeries1[i]-timeSeries_mean)*(timeSeries2[i]-timeSeries_mean)/timeSeries_var
-        auto_corr = auto_corr + temp
-    return auto_corr
+from Preprocessing import get_auto_corr
 
 #%%
 #plot the target value
-plt.plot(gold['USD'])
+gold_origional = pd.read_csv('./data/gold.csv')
+
+plt.plot(gold_origional['USD'])
 plt.xlabel('date')
 plt.ylabel('gold price')
 plt.title('gold price per ounce in USD')
@@ -81,7 +18,7 @@ plt.show()
 #We can see from the plot that the dataset is not stationary, and the gold price has an increasing trend.
 #%%
 #plot the autocorrelation of the gold price
-dep=np.array(gold['USD'])
+dep=np.array(gold_origional['USD'])
 acf=[]
 for i in range(20):
     acf.append(get_auto_corr(dep,i))
@@ -104,7 +41,7 @@ plt.show()
 #to make the gold price stationary. We can apply ADF test to see if the
 #the dataset if stationary.
 from statsmodels.tsa.stattools import adfuller
-stat =gold['USD'].values
+stat =gold_origional['USD'].values
 result = adfuller(stat)
 print('ADF Statistic: %f' % result[0])
 print('p-value: %f' % result[1])
@@ -116,11 +53,11 @@ for key, value in result[4].items():
 #%%
 #try first difference transformation method
 #y(i)=y(t)-y(t-1)
-gold['price']=(gold['USD']-gold['USD'].shift(1)).dropna()
-gold=gold.drop(gold.index[0])
-gold.head(5)
+gold_origional['price']=(gold_origional['USD']-gold_origional['USD'].shift(1)).dropna()
+gold_origional=gold_origional.drop(gold_origional.index[0])
+gold_origional.head(5)
 #%%
-stat =gold['price'].values
+stat = gold_origional['price'].values
 result = adfuller(stat)
 print('ADF Statistic: %f' % result[0])
 print('p-value: %f' % result[1])
@@ -132,13 +69,12 @@ for key, value in result[4].items():
 #Make prediction on nonstationary dataset use exponential smoothing method
 #split train,test
 from sklearn.model_selection import train_test_split
-Y=gold[['USD']]
+Y=gold_origional[['USD']]
 y_train,y_test=train_test_split(Y,test_size=0.2,shuffle=False)
 #%%
 y_train.info()
 #%%
 y_train.head()
-
 
 #%%
 #use classical decomposition to decompose the data
