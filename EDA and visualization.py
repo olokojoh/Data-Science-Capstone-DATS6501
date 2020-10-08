@@ -3,17 +3,84 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import statsmodels.api as sm
 from scipy import signal
-from Preprocessing import gold, get_auto_corr
+
+#%%
+#import data
+import random
+random.seed(42)
+pd.set_option('display.width', 400)
+pd.set_option('display.max_columns', 15)
+df=pd.read_csv('LBMA-GOLD.csv')
+df.head(5)
+
 #%%
 ##EDA and preprocessing
+#%%
+#check missing value
+def nan_checker(df):
+    df_nan = pd.DataFrame([[var, df[var].isna().sum() / df.shape[0], df[var].dtype]
+                           for var in df.columns if df[var].isna().sum() > 0],
+                          columns=['var', 'proportion', 'dtype'])
+    df_nan = df_nan.sort_values(by='proportion', ascending=False)
+    return df_nan
+df_nan = nan_checker(df)
+df_nan.reset_index(drop=True)
 
-gold = pd.read_csv('./data/gold.csv')
+#%%
+#sort in date in ascending order
+df['Date'] = pd.to_datetime(df.Date,format='%Y-%m-%d')
+df.sort_values(by='Date', inplace=True, ascending=True)
+df.head(5)
+
+#%%
+#change the index to be the date
+df.index = df['Date']
+df.drop('Date',axis = 1, inplace = True)
+df.head(5)
+
+#%%
+#pick usd(am) as target value and create a new dataframe
+df.columns.values[0] = 'USD'
+df.head(5)
+
+#%%
+gold = df.iloc[: , [0]].copy()
+gold.head(5)
+#%%
+#see how many missing values
+gold.isnull().sum()
+#1 missing value
+#%%
+gold.info()
+#%%
+gold.dropna(inplace=True)
+gold.info()
+#%%
+df_nan = nan_checker(gold)
+df_nan.reset_index(drop=True)
+
+#%%
+gold.head()
+
+#%%
+def get_auto_corr(timeSeries,k):
+    l = len(timeSeries)
+    timeSeries1 = timeSeries[0:l-k]
+    timeSeries2 = timeSeries[k:]
+    timeSeries_mean = np.mean(timeSeries)
+    timeSeries_var = np.array([i**2 for i in timeSeries-timeSeries_mean]).sum()
+    auto_corr = 0
+    for i in range(l-k):
+        temp = (timeSeries1[i]-timeSeries_mean)*(timeSeries2[i]-timeSeries_mean)/timeSeries_var
+        auto_corr = auto_corr + temp
+    return auto_corr
+
+#%%
 #plot the target value
 plt.plot(gold['USD'])
 plt.xlabel('date')
-
 plt.ylabel('gold price')
-plt.title('gold price per ounce in USD')
+plt.title('gold price($) per ounce per day')
 plt.show()
 #We can see from the plot that the dataset is not stationary, and the gold price has an increasing trend.
 #%%
@@ -32,8 +99,7 @@ plt.xlabel('lags')
 plt.ylabel('ACF value')
 plt.title('ACF for USD price')
 plt.show()
-#it shows that gold price has high autocorrelation that we can apply
-#time series model on it
+#Almost perfect positive correlation
 
 #%%
 #from the gold price plot, we can see that the mean and variance of the
@@ -57,6 +123,8 @@ gold['price']=(gold['USD']-gold['USD'].shift(1)).dropna()
 gold=gold.drop(gold.index[0])
 gold.head(5)
 #%%
+gold.info()
+#%%
 stat =gold['price'].values
 result = adfuller(stat)
 print('ADF Statistic: %f' % result[0])
@@ -64,3 +132,11 @@ print('p-value: %f' % result[1])
 print('Critical Values:')
 for key, value in result[4].items():
 	print('\t%s: %.3f' % (key, value))
+#Now the dataset is stationary as p-value is about 0 which is lower than 0.05
+
+#%%
+plt.plot(gold['price'])
+plt.xlabel('date')
+plt.ylabel('first difference')
+plt.title('first difference per day')
+plt.show()
