@@ -30,9 +30,23 @@ df.shape
 # Now the data have 13193 rows without Na values
 # %%
 
+df.shape
+df.reset_index(drop=True, inplace=True)
+
+# %%
+t = 0.9
+train = df.iloc[:int(t * len(df)),:]
+test = df.iloc[int(t * len(df)):,:]
+
+#%%
+train
+
+train.iloc[:, 1:3].values
+
+#%%
 # Get training data
 def train_data(PastnumDays, dataset_train):
-    training_set = dataset_train.iloc[:, 1:2].values
+    training_set = dataset_train.iloc[:, 1:3].values
     dataset_train.head()
         
     sc = MinMaxScaler(feature_range = (0, 1))
@@ -49,28 +63,34 @@ def train_data(PastnumDays, dataset_train):
     
     return X_train,y_train,dataset_train,sc
 
+#%%
 # Get test data
 def test_data(PastnumDays, dataset_train, dataset_test, sc):
-    real_stock_price = dataset_test.iloc[:, 1:2].values
+    real_gold_price = dataset_test.iloc[:, 1:3].values
     # merge train and validation dataset
     dataset_total = pd.concat((dataset_train, dataset_test), axis = 0)
-    db_all = dataset_total.iloc[:, 1:2].values
+    db_all = dataset_total.iloc[:, 1:3].values
 
     inputs = db_all[len(dataset_total) - len(dataset_test) - PastnumDays:]
+
     inputs = inputs.reshape(-1,2)
 
     inputs = sc.transform(inputs)
     X_test = []
-    for i in range(PastnumDays, len(db_all)):
+    for i in range(PastnumDays, len(inputs)):
         X_test.append(inputs[i-PastnumDays:i, :])
-        #X_test.append(inputs[i-60:i, 0])
+        
     X_test = np.array(X_test)
+    print(X_test.shape)
+    print(X_test.shape[0])
+    print(X_test.shape[1])
     X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 2))
     
-    return X_test,real_stock_price
+    return X_test, real_gold_price
 
+#%%
 # Create lstm model
-def stock_model(X_train, y_train):
+def gold_model(X_train, y_train):
     model = Sequential()
     # The input of LSTM is form of [samples, timesteps, features]
     model.add(LSTM(units = 50, return_sequences = True, input_shape = (X_train.shape[1], 2)))
@@ -93,23 +113,21 @@ def stock_model(X_train, y_train):
     
     return model
 
-def main():
-    X_train, y_train,dataset_train,sc = train_data()
-    
-    model = stock_model(X_train, y_train)
-    X_test,real_stock_price = test_data(dataset_train,sc)
-    predicted_stock_price = model.predict(X_test)
-    
-    predicted_stock_price = sc.inverse_transform(predicted_stock_price)
-    
-    plt.plot(real_stock_price, color = 'black', label = 'Gold Price')
-    
-    plt.plot(predicted_stock_price[:,0], color = 'green', label = 'Predicted Gold Price')
-    plt.title('Gold Price Prediction')
-    plt.xlabel('Time')
-    plt.ylabel('Gold Price')
-    plt.legend()
-    plt.show()
+#%%
+# Train the model
+X_train, y_train, dataset_train, sc = train_data(90, train)
 
-if __name__ == '__main__':
-    main()
+model = gold_model(X_train, y_train)
+
+X_test, real_gold_price = test_data(90, dataset_train, test, sc)
+predicted_gold_price = model.predict(X_test)
+predicted_gold_price = sc.inverse_transform(predicted_gold_price)
+
+plt.plot(real_gold_price, color = 'black', label = 'Gold Price')
+
+plt.plot(predicted_gold_price[:,0], color = 'green', label = 'Predicted Gold Price')
+plt.title('Gold Price Prediction')
+plt.xlabel('Time')
+plt.ylabel('Gold Price')
+plt.legend()
+plt.show()
