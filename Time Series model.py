@@ -8,56 +8,10 @@ from Preprocessing import get_auto_corr
 #%%
 #import data
 import random
-<<<<<<< HEAD
+
 gold = pd.read_csv('./data/gold.csv')
 =======
-np.random.seed(42)
-pd.set_option('display.width', 400)
-pd.set_option('display.max_columns', 15)
-df = pd.read_csv('./data/LBMA-GOLD.csv')
-#df=pd.read_csv('LBMA-GOLD.csv')
-df.head(5)
 
-#%%
-##EDA and preprocessing
-#%%
-#check missing value
-def nan_checker(df):
-    df_nan = pd.DataFrame([[var, df[var].isna().sum() / df.shape[0], df[var].dtype]
-                           for var in df.columns if df[var].isna().sum() > 0],
-                          columns=['var', 'proportion', 'dtype'])
-    df_nan = df_nan.sort_values(by='proportion', ascending=False)
-    return df_nan
-df_nan = nan_checker(df)
-df_nan.reset_index(drop=True)
-
-#%%
-df['Date'] = pd.to_datetime(df.Date,format='%Y-%m-%d')
-df.sort_values(by='Date', inplace=True, ascending=True)
-df.index = df['Date']
-df.drop('Date',axis = 1, inplace = True)
-df.columns.values[0] = 'USD'
-gold = df.iloc[: , [0]].copy()
-gold.dropna(inplace=True)
-df_nan = nan_checker(gold)
-df_nan.reset_index(drop=True)
-
-#%%
-gold.head()
-
-#%%
-def get_auto_corr(timeSeries,k):
-    l = len(timeSeries)
-    timeSeries1 = timeSeries[0:l-k]
-    timeSeries2 = timeSeries[k:]
-    timeSeries_mean = np.mean(timeSeries)
-    timeSeries_var = np.array([i**2 for i in timeSeries-timeSeries_mean]).sum()
-    auto_corr = 0
-    for i in range(l-k):
-        temp = (timeSeries1[i]-timeSeries_mean)*(timeSeries2[i]-timeSeries_mean)/timeSeries_var
-        auto_corr = auto_corr + temp
-    return auto_corr
->>>>>>> ff4f4ad35973e56be68b9a65b8e827b7cb6016cc
 
 #%%
 #plot the target value
