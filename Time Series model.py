@@ -10,7 +10,8 @@ import random
 np.random.seed(42)
 pd.set_option('display.width', 400)
 pd.set_option('display.max_columns', 15)
-df=pd.read_csv('LBMA-GOLD.csv')
+df = pd.read_csv('./data/LBMA-GOLD.csv')
+#df=pd.read_csv('LBMA-GOLD.csv')
 df.head(5)
 
 #%%
