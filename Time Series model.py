@@ -1,3 +1,4 @@
+# %%
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -10,8 +11,6 @@ from Preprocessing import get_auto_corr
 import random
 
 gold = pd.read_csv('./data/gold.csv')
-=======
-
 
 #%%
 #plot the target value
