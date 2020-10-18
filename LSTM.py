@@ -32,7 +32,9 @@ df.shape
 
 df.shape
 df.reset_index(drop=True, inplace=True)
-
+# %%
+df.shape
+df.reset_index(drop=True, inplace=True)
 # %%
 t = 0.9
 train = df.iloc[:int(t * len(df)),:]
@@ -119,15 +121,39 @@ X_train, y_train, dataset_train, sc = train_data(90, train)
 
 model = gold_model(X_train, y_train)
 
+# %%
 X_test, real_gold_price = test_data(90, dataset_train, test, sc)
 predicted_gold_price = model.predict(X_test)
 predicted_gold_price = sc.inverse_transform(predicted_gold_price)
 
-plt.plot(real_gold_price, color = 'black', label = 'Gold Price')
+# %%
+print(np.mean(predicted_gold_price - real_gold_price) ** 2)
 
+# %%
+plt.plot(real_gold_price, color = 'black', label = 'Gold Price')
 plt.plot(predicted_gold_price[:,0], color = 'green', label = 'Predicted Gold Price')
 plt.title('Gold Price Prediction')
 plt.xlabel('Time')
 plt.ylabel('Gold Price')
 plt.legend()
 plt.show()
+
+
+# %%
+# predict for whole dataset
+X_test, real_gold_price = test_data(90, dataset_train, df, sc)
+predicted_gold_price = model.predict(X_test)
+predicted_gold_price = sc.inverse_transform(predicted_gold_price)
+
+# %%
+print(np.mean(predicted_gold_price - real_gold_price) ** 2)
+
+# %%
+plt.plot(real_gold_price, color = 'black', label = 'Gold Price')
+plt.plot(predicted_gold_price[:,0], color = 'green', label = 'Predicted Gold Price')
+plt.title('Gold Price Prediction')
+plt.xlabel('Time')
+plt.ylabel('Gold Price')
+plt.legend()
+plt.show()
+
