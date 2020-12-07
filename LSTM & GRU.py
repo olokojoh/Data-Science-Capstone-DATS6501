@@ -11,9 +11,8 @@ import pandas as pd
 import numpy as np
 
 # Read csv file
-df = pd.read_csv('./data/LBMA-GOLD.csv')
+df = pd.read_csv('./data/LBMA-GOLD.csv', header=0)
 df.head()
-
 # %%
 from Preprocessing import nan_checker
 # Select columns of USD
@@ -36,7 +35,7 @@ df.reset_index(drop=True, inplace=True)
 df.shape
 df.reset_index(drop=True, inplace=True)
 # %%
-t = 0.9
+t = 0.7
 train = df.iloc[:int(t * len(df)),:]
 test = df.iloc[int(t * len(df)):,:]
 
@@ -95,7 +94,8 @@ def test_data(PastnumDays, dataset_train, dataset_test, sc):
 def gold_model(X_train, y_train):
     model = Sequential()
     # The input of LSTM is form of [samples, timesteps, features]
-    model.add(LSTM(units = 50, return_sequences = True, input_shape = (X_train.shape[1], 2)))
+    model.add(LSTM(units = 50, return_sequences = True,
+          input_shape = (X_train.shape[1], 2)))
     
     model.add(Dropout(0.2))
     
@@ -111,21 +111,32 @@ def gold_model(X_train, y_train):
     model.add(Dense(units = 2))
     
     model.compile(optimizer = 'adam', loss = 'mean_squared_error')
-    model.fit(X_train, y_train, epochs = 100, batch_size = 32)
+    history = model.fit(X_train, y_train, epochs = 50, batch_size = 32)
     
-    return model
+    return model, history
 
 #%%
 # Train the model
-X_train, y_train, dataset_train, sc = train_data(90, train)
-
-model = gold_model(X_train, y_train)
-
-# %%
-X_test, real_gold_price = test_data(90, dataset_train, test, sc)
+# gr = [(i+1)*5 for i in range(36)]
+# mse_all = []
+# for past_days in gr:
+past_days = 95
+X_train, y_train, dataset_train, sc = train_data(past_days, train)
+model, history = gold_model(X_train, y_train)
+X_test, real_gold_price = test_data(past_days, dataset_train, test, sc)
 predicted_gold_price = model.predict(X_test)
 predicted_gold_price = sc.inverse_transform(predicted_gold_price)
+  # mse = np.mean((predicted_gold_price - real_gold_price)**2)
+  # mse_all.append((past_days,mse))
 
+# %%
+plt.plot(history.history['loss'])
+
+
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='upper left')
+plt.show()
 # %%
 print(np.mean(predicted_gold_price - real_gold_price) ** 2)
 
@@ -157,3 +168,80 @@ plt.ylabel('Gold Price')
 plt.legend()
 plt.show()
 
+
+# %%
+# Create lstm model
+def gold_GRU_model(X_train, y_train):
+    model = Sequential()
+    # The input of GRU is form of [samples, timesteps, features]
+    model.add(GRU(units = 50, return_sequences = True,
+          input_shape = (X_train.shape[1], 2)))
+    
+    model.add(Dropout(0.2))
+    
+    model.add(GRU(units = 50, return_sequences = True))
+    model.add(Dropout(0.2))
+    
+    model.add(GRU(units = 50, return_sequences = True))
+    model.add(Dropout(0.2))
+    
+    model.add(GRU(units = 50))
+    model.add(Dropout(0.2))
+    # Fully connected NN - 2 outputs
+    model.add(Dense(units = 2))
+    
+    model.compile(optimizer = 'adam', loss = 'mean_squared_error')
+    history = model.fit(X_train, y_train, epochs = 50, batch_size = 32)
+    
+    return model, history
+
+# %%
+# Train the model
+# gr = [(i+1)*5 for i in range(15,26)]
+# mse_all = []
+# for past_days in gr:
+X_train, y_train, dataset_train, sc = train_data(past_days, train)
+model, history = gold_GRU_model(X_train, y_train)
+X_test, real_gold_price = test_data(past_days, dataset_train, test, sc)
+predicted_gold_price = model.predict(X_test)
+predicted_gold_price = sc.inverse_transform(predicted_gold_price)
+# mse = np.mean((predicted_gold_price - real_gold_price)**2)
+# mse_all.append((past_days,mse))
+
+# # %%
+# grP = pd.DataFrame({'past_day':[i[0] for i in mse_all], 'mse': [i[1] for i in mse_all]})
+
+# # %%
+# grP.sort_values('mse')
+
+# %%
+# # Train the model
+# X_train, y_train, dataset_train, sc = train_data(past_days, train)
+
+# model = gold_GRU_model(X_train, y_train)
+
+# %%
+X_test, real_gold_price = test_data(past_days, dataset_train, test, sc)
+predicted_gold_price = model.predict(X_test)
+predicted_gold_price = sc.inverse_transform(predicted_gold_price)
+print(np.mean((predicted_gold_price - real_gold_price)**2))
+plt.plot(real_gold_price, color = 'black', label = 'Gold Price')
+plt.plot(predicted_gold_price[:,0], color = 'green', label = 'Predicted Gold Price')
+plt.title('Gold Price Prediction')
+plt.xlabel('Time')
+plt.ylabel('Gold Price')
+plt.legend()
+plt.show()
+
+# %%
+X_test, real_gold_price = test_data(past_days, dataset_train, df, sc)
+predicted_gold_price = model.predict(X_test)
+predicted_gold_price = sc.inverse_transform(predicted_gold_price)
+print(np.mean((predicted_gold_price - real_gold_price)**2))
+plt.plot(real_gold_price, color = 'black', label = 'Gold Price')
+plt.plot(predicted_gold_price[:,0], color = 'green', label = 'Predicted Gold Price')
+plt.title('Gold Price Prediction')
+plt.xlabel('Time')
+plt.ylabel('Gold Price')
+plt.legend()
+plt.show()
